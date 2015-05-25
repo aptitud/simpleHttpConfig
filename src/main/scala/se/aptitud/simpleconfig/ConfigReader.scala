@@ -8,19 +8,20 @@ class ConfigReader {
 
 
   def read( component:String, version:Double, environment:String ) : String = {
+    val path: JSFunction = component.concat("/").concat("v").concat(version.toString).concat("/").concat(environment)
     val builder = MongoDBObject.newBuilder
     builder += "environment" -> environment
     builder += "version" -> version
     builder += "active" -> "true"
-    builder += "path" -> component.concat("/").concat("v").concat(version.toString).concat("/").concat(environment)
+    builder += "path" -> path
     val pattern = builder.result
 
     val configDb: MongoDB = mongoClient.getDB("config")
     val collection: DBCollection = configDb.getCollection(component)
     val find: DBCursor = collection.find(pattern)
-    val next: DBObject = find.next()
+    val first: DBObject = find.next()
 
-    next.toString();
+    first.toString();
 
   }
 }

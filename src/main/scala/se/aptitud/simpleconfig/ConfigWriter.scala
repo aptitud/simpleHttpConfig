@@ -11,31 +11,32 @@ class ConfigWriter {
 
   def update( component:String, version:Double, environment:String, jsonContent:String ) : String = {
     val collection: DBCollection = configDb.getCollection(component)
+    val path: JSFunction = component.concat("/").concat("v").concat(version.toString).concat("/").concat(environment)
 
     val builder = MongoDBObject.newBuilder
     builder += "environment" -> environment
     builder += "version" -> version
     builder += "active" -> "true"
-    builder += "path" -> component.concat("/").concat("v").concat(version.toString).concat("/").concat(environment)
+    builder += "path" -> path
     val pattern = builder.result
 
     val find: DBCursor = collection.find(pattern)
     if(find.hasNext){
-      val next: DBObject = find.next()
-      next.put("replaced", java.time.Instant.now().toEpochMilli)
-      next.put("active", "false")
-      val result: WriteResult = collection.update(pattern, next)
+      val first: DBObject = find.next()
+      first.put("replaced", java.time.Instant.now().toEpochMilli)
+      first.put("active", "false")
+      val result: WriteResult = collection.update(pattern, first)
       System.out.println("UPDATED -> " + result.toString)
     }
 
     val updated:AnyRef =  JSON.parse(jsonContent)
-    val toStore:DBObject=  updated.asInstanceOf[DBObject]
-    toStore.put("environment",environment)
-    toStore.put("version",version)
-    toStore.put("path", component.concat("/").concat("v").concat(version.toString).concat("/").concat(environment))
-    toStore.put("active", "true")
-    collection.insert(toStore)
-    toStore.toString
+    val newItem:DBObject=  updated.asInstanceOf[DBObject]
+    newItem.put("environment",environment)
+    newItem.put("version",version)
+    newItem.put("path", path)
+    newItem.put("active", "true")
+    collection.insert(newItem)
+    newItem.toString
 
   }
 }
